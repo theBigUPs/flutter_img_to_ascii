@@ -9,7 +9,7 @@ class HomeViewModel with ChangeNotifier {
   Uint8List? displayedImage;
   List<List<int>> brightnessArray = [];
   String asciiBrightnessCharacters =
-      r'`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$';
+      r'`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$'; //67
   bool _showProgressIndicator = false;
   set showProgressIndicator(bool value) {
     _showProgressIndicator = value;
@@ -30,8 +30,7 @@ class HomeViewModel with ChangeNotifier {
 
       //_showProgressIndicator = false;
       notifyListeners();
-      //int x = 10;
-      //int y = 20;
+
       useIsolate(decodedImage);
       //brightnessArray[0][0]=12;
       //print("width:${decodedImage.width} height:${decodedImage.height}");
@@ -44,7 +43,7 @@ class HomeViewModel with ChangeNotifier {
   useIsolate(img.Image val) async {
     final ReceivePort receivePort = ReceivePort();
     try {
-      await Isolate.spawn(constructBrightnessArray,
+      Isolate.spawn(constructBrightnessArray,
           [receivePort.sendPort, val, brightnessArray]);
       brightnessArray = await receivePort.first;
 
@@ -63,14 +62,32 @@ class HomeViewModel with ChangeNotifier {
 
     // Create a dynamic 2D list to store brightness values
     args[2] = List.generate(height, (i) => List<int>.filled(width, 0));
-    for (var i = 0; i < 2; i++) {
-      for (var j = 0; j < 2; j++) {
+    for (var i = 0; i < height; i++) {
+      //height
+      for (var j = 0; j < width; j++) {
+        //width
         img.Pixel pixelColor = args[1].getPixel(j, i);
         double brightness = (pixelColor.b + pixelColor.g + pixelColor.r) / 3;
         args[2][i][j] = brightness.toInt();
-        print(args[2][i][j]);
+        //print(args[2][i][j]);
       }
     }
     resultPort.send(args[2]);
+  }
+
+  static void constructAsciiArray(List<dynamic> args, int height, int width) {
+    SendPort resultPort = args[0];
+    List<List<String>> asciiPixelArray =
+        List.generate(height, (i) => List<String>.filled(width, ""));
+    for (var i = 0; i < height; i++) {
+      //height
+      for (var j = 0; j < width; j++) {
+        //width
+        int charNum = args[1][i][j] ~/ 67; //integer division
+        asciiPixelArray[i][j] = args[2][charNum];
+        //print(args[2][i][j]);
+      }
+    }
+    resultPort.send(asciiPixelArray);
   }
 }
