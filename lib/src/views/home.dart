@@ -10,22 +10,46 @@ class Home extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.blueGrey,
       body: SafeArea(
-          child: Column(children: [
-        ElevatedButton(
+          child: Align(
+        alignment: Alignment.topCenter,
+        child: Column(children: [
+          const SizedBox(
+            height: 24,
+          ),
+          ElevatedButton(
             onPressed: () async {
               HomeViewModel viewModel = Provider.of(
                 context,
                 listen: false,
               );
-              viewModel.getPixelInfo();
+              //viewModel.showProgressIndicator = true;
+              viewModel.getImage();
             },
-            child: const Icon(Icons.add)),
-        const SizedBox(
-          width: 100,
-          height: 100,
-          //child: Image(image: imageInfo),
-        )
-      ])),
+            style: ButtonStyle(
+              minimumSize: MaterialStateProperty.all(
+                const Size(80, 80),
+              ),
+            ),
+            child: const Icon(Icons.add),
+          ),
+          const SizedBox(
+            height: 12,
+          ),
+          Consumer<HomeViewModel>(
+            builder: (context, viewmodel, child) {
+              return SizedBox(
+                width: 200,
+                height: 200,
+                child: viewmodel.showProgressIndicator
+                    ? const CircularProgressIndicator()
+                    : viewmodel.displayedImage != null
+                        ? Image.memory(viewmodel.displayedImage!)
+                        : Container(),
+              );
+            },
+          )
+        ]),
+      )),
     );
   }
 }
