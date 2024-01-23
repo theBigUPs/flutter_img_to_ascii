@@ -4,10 +4,12 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image/image.dart' as img;
+import 'package:permission_handler/permission_handler.dart';
 
 class HomeViewModel with ChangeNotifier {
   Uint8List? displayedImage;
   List<List<int>> brightnessArray = [];
+  List<List<String>> asciiImage = [];
   String asciiBrightnessCharacters =
       r'`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$'; //67
   bool _showProgressIndicator = false;
@@ -31,7 +33,7 @@ class HomeViewModel with ChangeNotifier {
       //_showProgressIndicator = false;
       notifyListeners();
 
-      useIsolate(decodedImage);
+      //useIsolate(decodedImage);
       //brightnessArray[0][0]=12;
       //print("width:${decodedImage.width} height:${decodedImage.height}");
       //print('Pixel at ($x, $y): color blue: ${pixelColor.b},');
@@ -40,18 +42,23 @@ class HomeViewModel with ChangeNotifier {
     }
   }
 
-  useIsolate(img.Image val) async {
-    final ReceivePort receivePort = ReceivePort();
+  void useIsolate(img.Image val) async {
+    final ReceivePort receivePort1 = ReceivePort();
+    final ReceivePort receivePort2 = ReceivePort();
     try {
       Isolate.spawn(constructBrightnessArray,
-          [receivePort.sendPort, val, brightnessArray]);
-      brightnessArray = await receivePort.first;
+          [receivePort1.sendPort, val, brightnessArray]);
+      brightnessArray = await receivePort1.first;
 
       print('Result: ${brightnessArray[0][0]}');
-      receivePort.close();
+
+      Isolate.spawn(constructAsciiArray,
+          [receivePort2.sendPort, brightnessArray, asciiBrightnessCharacters]);
+      asciiImage = await receivePort2.first;
     } on IsolateSpawnException catch (e) {
       debugPrint('Isolate Failed: $e');
-      receivePort.close();
+      receivePort1.close();
+      receivePort2.close();
     }
   }
 
@@ -75,17 +82,45 @@ class HomeViewModel with ChangeNotifier {
     resultPort.send(args[2]);
   }
 
-  static void constructAsciiArray(List<dynamic> args, int height, int width) {
+  Future<void> requestStoragePermission() async {
+    while (true) {
+      var status = await Permission.storage.status;
+
+      if (status.isGranted) {
+        // Permission is already granted
+        return;
+      } else if (status.isDenied || status.isPermanentlyDenied) {
+        var result = await Permission.storage.request();
+
+        if (result.isGranted) {
+          // Permission granted
+          print('Storage permission granted');
+          return;
+        } else {
+          // Permission denied
+          print('Storage permission denied');
+          // You can provide some feedback to the user here if needed
+        }
+      }
+    }
+  }
+
+  static void constructAsciiArray(
+    List<dynamic> args,
+  ) {
+    //args[0] is sendport args[1] is brightnessarray args[2] is the asciistring
+    int width = args[1].length;
+    int height = args[1].isNotEmpty ? args[1][0].length : 0;
     SendPort resultPort = args[0];
     List<List<String>> asciiPixelArray =
         List.generate(height, (i) => List<String>.filled(width, ""));
-    for (var i = 0; i < height; i++) {
+    for (var i = 0; i < 2; i++) {
       //height
-      for (var j = 0; j < width; j++) {
+      for (var j = 0; j < 2; j++) {
         //width
-        int charNum = args[1][i][j] ~/ 67; //integer division
+        int charNum = args[1][i][j] ~/ (255 / 67); //integer division
         asciiPixelArray[i][j] = args[2][charNum];
-        //print(args[2][i][j]);
+        print(asciiPixelArray[i][j]);
       }
     }
     resultPort.send(asciiPixelArray);
