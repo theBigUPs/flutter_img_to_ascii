@@ -39,6 +39,7 @@ class HomeState extends State<Home> {
                   HomeViewModel viewModel =
                       Provider.of<HomeViewModel>(context, listen: false);
                   viewModel.getImage();
+                  viewModel.status = "";
                 },
                 style: ButtonStyle(
                   minimumSize: MaterialStateProperty.all(
@@ -61,6 +62,11 @@ class HomeState extends State<Home> {
                             ? Image.memory(viewmodel.displayedImage!)
                             : Container(),
                   );
+                },
+              ),
+              Consumer<HomeViewModel>(
+                builder: (context, viewmodel, child) {
+                  return Text(viewmodel.status);
                 },
               )
             ],
